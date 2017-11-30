@@ -117,14 +117,17 @@ func (model *Model) Add(shape Shape, alpha int) {
 }
 
 func (model *Model) Step(shapeType ShapeType, alpha, repeat int) int {
-	state := model.runWorkers(shapeType, alpha, 1000, 100, 16)
+	const nRandom = 1000
+	const maxAge = 100
+	const m = 16 // what's that?
+	state := model.runWorkers(shapeType, alpha, nRandom, maxAge, m)
 	// state = HillClimb(state, 1000).(*State)
 	model.Add(state.Shape, state.Alpha)
 
 	for i := 0; i < repeat; i++ {
 		state.Worker.Init(model.Current, model.Score)
 		a := state.Energy()
-		state = HillClimb(state, 100).(*State)
+		state = HillClimb(state, maxAge).(*State)
 		b := state.Energy()
 		if a == b {
 			break
@@ -144,7 +147,8 @@ func (model *Model) Step(shapeType ShapeType, alpha, repeat int) int {
 	return counter
 }
 
-func (model *Model) runWorkers(t ShapeType, a, n, age, m int) *State {
+// n = 1000, age = 100, m = 16
+func (model *Model) runWorkers(t ShapeType, alpha, n, maxAge, m int) *State {
 	wn := len(model.Workers)
 	ch := make(chan *State, wn)
 	wm := m / wn
@@ -154,7 +158,7 @@ func (model *Model) runWorkers(t ShapeType, a, n, age, m int) *State {
 	for i := 0; i < wn; i++ {
 		worker := model.Workers[i]
 		worker.Init(model.Current, model.Score)
-		go model.runWorker(worker, t, a, n, age, wm, ch)
+		go model.runWorker(worker, t, alpha, n, maxAge, wm, ch)
 	}
 	var bestEnergy float64
 	var bestState *State
@@ -169,6 +173,7 @@ func (model *Model) runWorkers(t ShapeType, a, n, age, m int) *State {
 	return bestState
 }
 
-func (model *Model) runWorker(worker *Worker, t ShapeType, a, n, age, m int, ch chan *State) {
-	ch <- worker.BestHillClimbState(t, a, n, age, m)
+// n = 1000, age = 100, m = 16/numCPUs (+1 if m/numCPUs != 0)
+func (model *Model) runWorker(worker *Worker, t ShapeType, alpha, n, age, m int, ch chan *State) {
+	ch <- worker.BestHillClimbState(t, alpha, n, age, m)
 }

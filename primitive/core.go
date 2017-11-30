@@ -3,10 +3,16 @@ package primitive
 import (
 	"image"
 	"math"
+	"sync"
 )
 
 func computeColor(target, current *image.RGBA, lines []Scanline, alpha int) Color {
 	var rsum, gsum, bsum, count int64
+	// 0x101 is because of wanting to have 16-bit premultiplied colors
+	// https://blog.golang.org/go-image-package
+	// according to https://stackoverflow.com/questions/35374300/why-does-golang-rgba-rgba-method-use-and
+	// that could also work by doing 8 bitshift (255 << 8), but that seems slower
+	// than doing a multiplication from some simple benchmarks.
 	a := 0x101 * 255 / alpha
 	for _, line := range lines {
 		i := target.PixOffset(line.X1, line.Y)

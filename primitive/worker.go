@@ -53,15 +53,16 @@ func (worker *Worker) Energy(shape Shape, alpha int) float64 {
 	return differencePartial(worker.Target, worker.Current, worker.Buffer, worker.Score, lines)
 }
 
-func (worker *Worker) BestHillClimbState(t ShapeType, a, n, age, m int) *State {
+// n = 1000, maxAge = 100, m = 16/numCPUs (+1 if m/numCPUs != 0)
+func (worker *Worker) BestHillClimbState(t ShapeType, alpha, nRandom, maxAge, m int) *State {
 	var bestEnergy float64
 	var bestState *State
 	for i := 0; i < m; i++ {
-		state := worker.BestRandomState(t, a, n)
+		state := worker.BestRandomState(t, alpha, nRandom)
 		before := state.Energy()
-		state = HillClimb(state, age).(*State)
+		state = HillClimb(state, maxAge).(*State)
 		energy := state.Energy()
-		vv("%dx random: %.6f -> %dx hill climb: %.6f\n", n, before, age, energy)
+		vv("%dx random: %.6f -> %dx hill climb: %.6f\n", nRandom, before, maxAge, energy)
 		if i == 0 || energy < bestEnergy {
 			bestEnergy = energy
 			bestState = state
@@ -70,11 +71,12 @@ func (worker *Worker) BestHillClimbState(t ShapeType, a, n, age, m int) *State {
 	return bestState
 }
 
-func (worker *Worker) BestRandomState(t ShapeType, a, n int) *State {
+// n = 1000
+func (worker *Worker) BestRandomState(t ShapeType, alpha, n int) *State {
 	var bestEnergy float64
 	var bestState *State
 	for i := 0; i < n; i++ {
-		state := worker.RandomState(t, a)
+		state := worker.RandomState(t, alpha)
 		energy := state.Energy()
 		if i == 0 || energy < bestEnergy {
 			bestEnergy = energy
@@ -84,25 +86,25 @@ func (worker *Worker) BestRandomState(t ShapeType, a, n int) *State {
 	return bestState
 }
 
-func (worker *Worker) RandomState(t ShapeType, a int) *State {
+func (worker *Worker) RandomState(t ShapeType, alpha int) *State {
 	switch t {
 	default:
-		return worker.RandomState(ShapeType(worker.Rnd.Intn(8)+1), a)
+		return worker.RandomState(ShapeType(worker.Rnd.Intn(8)+1), alpha)
 	case ShapeTypeTriangle:
-		return NewState(worker, NewRandomTriangle(worker), a)
+		return NewState(worker, NewRandomTriangle(worker), alpha)
 	case ShapeTypeRectangle:
-		return NewState(worker, NewRandomRectangle(worker), a)
+		return NewState(worker, NewRandomRectangle(worker), alpha)
 	case ShapeTypeEllipse:
-		return NewState(worker, NewRandomEllipse(worker), a)
+		return NewState(worker, NewRandomEllipse(worker), alpha)
 	case ShapeTypeCircle:
-		return NewState(worker, NewRandomCircle(worker), a)
+		return NewState(worker, NewRandomCircle(worker), alpha)
 	case ShapeTypeRotatedRectangle:
-		return NewState(worker, NewRandomRotatedRectangle(worker), a)
+		return NewState(worker, NewRandomRotatedRectangle(worker), alpha)
 	case ShapeTypeQuadratic:
-		return NewState(worker, NewRandomQuadratic(worker), a)
+		return NewState(worker, NewRandomQuadratic(worker), alpha)
 	case ShapeTypeRotatedEllipse:
-		return NewState(worker, NewRandomRotatedEllipse(worker), a)
+		return NewState(worker, NewRandomRotatedEllipse(worker), alpha)
 	case ShapeTypePolygon:
-		return NewState(worker, NewRandomPolygon(worker, 4, false), a)
+		return NewState(worker, NewRandomPolygon(worker, 4, false), alpha)
 	}
 }
